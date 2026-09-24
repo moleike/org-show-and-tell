@@ -6,18 +6,17 @@ teleprompter.
 
 * What it does
 
-- *Title & Agenda Slides:* Automatically generates a title cover from =#+TITLE:=
-  / =#+AUTHOR:= headers and an agenda slide from your document headings.
-- *Smart Subheadings:* Displays parent-heading breadcrumbs on sub-slides for
-  context.
-- *Teleprompter:* Syncs private notes from =#+begin_notes= blocks to a dedicated
-  presenter buffer.
-- *Clean Visual Layout:* Centers slides with custom margins, hides heading
-  asterisks (=*=), block tags (=#+begin_src=), line numbers, cursors, and
-  fringes.
-- *Theme & UI Restoration:* Temporarily applies a presentation theme and
-  restores your exact buffer state on exit.
-- *Evil Navigation:* Maps =h= / =j= / =k= / =l= and =q= to slide navigation.
+- Automatically generates a title cover from =#+TITLE:= / =#+AUTHOR:= headers
+  and an agenda slide from your document headings.
+- Displays slide progress in the mode-line.
+- Displays parent-heading breadcrumbs on sub-slides for context.
+- Syncs private notes from =#+begin_notes= blocks to a dedicated presenter
+  buffer ([[*Speaker Notes][see below]]).
+- Centers slides with custom margins, hides heading asterisks (=*=), block tags
+  (=#+begin_src=), line numbers, cursors, =hl-line-mode=, and fringes.
+- Temporarily applies a presentation theme and restores your exact buffer state
+  on exit.
+- Maps =h= / =j= / =k= / =l= and =q= to slide navigation.
 - Uses buffer narrowing to isolate each slide.
 
 * Doom Emacs Setup
@@ -36,7 +35,7 @@ Configure in ~config.el~:
   :leader :desc "Toggle Presentation" "t P" #'org-show-and-tell-mode))
 #+end_src
 
-* Speaker Notes & Teleprompter
+* Speaker Notes
 
 1. Add notes to your slides:
 
