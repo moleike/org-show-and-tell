@@ -40,13 +40,17 @@ Configure in ~config.el~:
 
 1. Add notes to your slides:
 
-   #+begin_src org
-   ,#+TITLE: Presentation Title ,#+AUTHOR: Alexandre Moreno
+#+begin_src org
+,#+TITLE: Presentation Title
+,#+AUTHOR: Alexandre Moreno
 
-   ,* Main Topic ,** Sub-topic Title Slide content goes here.
+,* Main Topic
+,** Sub-topic Title Slide content goes here.
 
-   ,#+begin_notes Speaker notes for this slide. ,#+end_notes
-   #+end_src
+,#+begin_notes
+Speaker notes for this slide.
+,#+end_notes
+#+end_src
 
 2. Start the presentation: ~M-x org-show-and-tell-mode~ (or ~SPC t P~).
 
