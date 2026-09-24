@@ -26,7 +26,7 @@ Add to ~packages.el~:
 
 #+begin_src elisp
 (package! org-show-and-tell :recipe (:host github :repo
-  "moleike/org-show-and-tell.el"))
+  "moleike/org-show-and-tell"))
 #+end_src
 
 Configure in ~config.el~:
