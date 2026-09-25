@@ -4,6 +4,8 @@
 An opinionated Org mode presentation package featuring an integrated
 teleprompter.
 
+[[file:demo.gif]]
+
 * What it does
 
 - Uses buffer narrowing to isolate each slide.

@@ -1,0 +1,45 @@
+#+TITLE: org-show-and-tell
+#+AUTHOR: Alexandre Moreno
+
+* Introduction
+A minimalist presentation mode for Org mode.
+
+#+begin_notes
+Welcome! This presentation runs entirely inside org-show-and-tell.
+#+end_notes
+
+* Features
+** Title & Agenda
+Auto-generated cover and TOC slides.
+
+#+begin_notes
+Zero boilerplate setup for covers and agendas.
+#+end_notes
+
+** Smart Subheadings
+Parent breadcrumbs provide instant structural context.
+
+#+begin_src elisp
+(use-package! org-show-and-tell
+  :commands (org-show-and-tell-mode))
+#+end_src
+
+#+begin_notes
+Breadcrumbs keep everyone oriented during deep dives.
+#+end_notes
+
+* Speaker Notes
+** Teleprompter
+Private notes sync to a dedicated presenter buffer.
+
+#+begin_notes
+Check your laptop screen—this text is hidden from the projector view!
+#+end_notes
+
+* Conclusion
+Questions?
+
+#+begin_notes
+Wrap up and open the floor for questions.
+#+end_notes
+
