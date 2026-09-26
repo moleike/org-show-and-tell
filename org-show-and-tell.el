@@ -83,6 +83,7 @@
 (defvar-local org-show-and-tell--slide-string "")
 (defvar-local org-show-and-tell--saved-tilde-fringe nil)
 (defvar-local org-show-and-tell--saved-evil-cursor nil)
+(defvar-local org-show-and-tell--agenda-items nil)
 
 ;; ---------------------------------------------------------------------
 ;; Data Accessors & Helpers
@@ -107,23 +108,27 @@
         (when (re-search-forward (format "^#\\+%s:\\s-*\\(.*\\)$" keyword) nil t)
           (string-trim (match-string-no-properties 1)))))))
 
+(defun org-show-and-tell--build-agenda ()
+  "Build an alist of (DISPLAY-TITLE . SLIDE-INDEX) for Level 1 headings."
+  (let ((items nil)
+        (count 0))
+    (dotimes (idx (length org-show-and-tell--slides))
+      (let ((slide (nth idx org-show-and-tell--slides)))
+        (when (eq (org-show-and-tell--slide-type slide) 'slide)
+          (save-excursion
+            (goto-char (org-show-and-tell--slide-start slide))
+            (when (looking-at "^\\* \\(.*\\)")
+              (let ((title (string-trim (match-string-no-properties 1))))
+                (unless (string-match-p "^\\(agenda\\|index\\|toc\\)$" (downcase title))
+                  (setq count (1+ count))
+                  (push (cons (format "%d. %s" count title) idx) items))))))))
+    (nreverse items)))
+
 (defun org-show-and-tell--generate-agenda-string ()
-  "Scan buffer for Level 1 headings and generate an enumerated list."
-  (let ((titles nil)
-        (i 0))
-    (save-excursion
-      (save-restriction
-        (widen)
-        (goto-char (point-min))
-        (let ((case-fold-search t))
-          (while (re-search-forward "^\\* \\(.*\\)" nil t)
-            (let ((title (string-trim (match-string-no-properties 1))))
-              (unless (string-match-p "^\\(agenda\\|index\\|toc\\)$" title)
-                (push title titles)))))))
-    (if titles
-        (mapconcat (lambda (title) (format "%d. %s" (setq i (1+ i)) title))
-                   (nreverse titles) "\n")
-      "No content slides found.")))
+  "Generate agenda string"
+  (if org-show-and-tell--agenda-items
+      (mapconcat #'car org-show-and-tell--agenda-items "\n")
+    "No content slides found."))
 
 (defun org-show-and-tell--collect-slides ()
   "Scan buffer and return list of (TYPE START . END) tuples."
@@ -210,7 +215,7 @@
                    (end (if (eq (char-after end) ?\n) (1+ end) end))
                    (ov (make-overlay beg end)))
               (overlay-put ov 'display "")
-              (push ov org-show-and-tell--overlays)))))))))
+              (push ov org-show-and-tell--overlays))))))))
 
 (defun org-show-and-tell--apply-title-overlay (margin-str)
   "Render virtual Title slide overlay."
@@ -464,7 +469,8 @@
               (setq org-show-and-tell-mode nil)
               (user-error "No Level 1 (*) or Level 2 (**) headings found in buffer"))
           (setq org-show-and-tell--slides slides
-                org-show-and-tell--index 0)
+                org-show-and-tell--index 0
+                org-show-and-tell--agenda-items (org-show-and-tell--build-agenda))
           (org-show-and-tell--save-and-apply-ui)
           (org-show-and-tell--render)))
     (org-show-and-tell--restore-ui)))
@@ -480,5 +486,22 @@
         (setq org-show-and-tell--index (1- n))
         (org-show-and-tell--render))
     (user-error "Invalid slide number %d (valid range: 1-%d)" n (length org-show-and-tell--slides))))
+
+;;;###autoload
+(defun org-show-and-tell-goto-agenda ()
+  "Jump to an agenda section using cached items."
+  (interactive)
+  (unless (and (boundp 'org-show-and-tell-mode) org-show-and-tell-mode)
+    (user-error "Not in org-show-and-tell-mode"))
+  (if (null org-show-and-tell--agenda-items)
+      (user-error "No agenda items found")
+    (let* ((completion-extra-properties '(:display-sort-function identity
+                                          :cycle-sort-function identity))
+           (choice (completing-read "Agenda: " org-show-and-tell--agenda-items nil t))
+           (target-idx (cdr (assoc choice org-show-and-tell--agenda-items))))
+      (when target-idx
+        (setq org-show-and-tell--index target-idx)
+        (org-show-and-tell--render)))))
+
 (provide 'org-show-and-tell)
 ;;; org-show-and-tell.el ends here
