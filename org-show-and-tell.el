@@ -469,5 +469,16 @@
           (org-show-and-tell--render)))
     (org-show-and-tell--restore-ui)))
 
+;;;###autoload
+(defun org-show-and-tell-goto-slide (n)
+  "Jump directly to slide number N."
+  (interactive "nJump to slide: ")
+  (unless (and (boundp 'org-show-and-tell-mode) org-show-and-tell-mode)
+    (user-error "Not in org-show-and-tell-mode"))
+  (if (and (>= n 1) (<= n (length org-show-and-tell--slides)))
+      (progn
+        (setq org-show-and-tell--index (1- n))
+        (org-show-and-tell--render))
+    (user-error "Invalid slide number %d (valid range: 1-%d)" n (length org-show-and-tell--slides))))
 (provide 'org-show-and-tell)
 ;;; org-show-and-tell.el ends here
