@@ -8,18 +8,20 @@ teleprompter.
 
 * What it does
 
-- Uses buffer narrowing to isolate each slide.
-- Genereates a title cover from =#+TITLE:= / =#+AUTHOR:= headers
-  and an agenda slide from your document headings.
+- Genereates a title cover from =#+TITLE:= / =#+AUTHOR:= headers and an agenda
+  slide from your document headings.
+- Evil navigation for slides, alongside an agenda picker and goto-slide
+  commands.
 - Displays slide progress in the mode-line.
 - Displays parent-heading breadcrumbs on sub-slides for context.
 - Syncs private notes from =#+begin_notes= blocks to a dedicated presenter
   buffer ([[*Speaker Notes][see below]]).
 - Centers slides with custom margins, hides heading asterisks (=*=), block tags
-  (=#+begin_src=), line numbers, cursors, =hl-line-mode=, VC gutter, and fringes.
+  (=#+begin_src=), line numbers, cursors, =hl-line-mode=, VC gutter, and
+  fringes.
 - Temporarily applies a presentation theme and restores your exact buffer state
   on exit.
-- Maps =h= / =j= / =k= / =l= and =q= to slide navigation.
+- Uses buffer narrowing to isolate each slide.
 
 * Doom Emacs Setup
 
@@ -73,7 +75,7 @@ Add to ~packages.el~:
    ,#+end_notes
    #+end_src
 
-2. Start the presentation by toggling ~M-x doom-tree-slide-mode~
+2. Start the presentation by toggling ~M-x org-show-and-tell-mode~
 
 3. Clone your frame (e.g. ~M-x clone-frame~) and either drag it to your external
    display or select it as your shared window in your meeting app.
