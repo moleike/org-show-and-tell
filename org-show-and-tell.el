@@ -200,7 +200,8 @@
   (save-excursion
     (let ((case-fold-search t))
       (goto-char (point-min))
-      (while (re-search-forward "^[ \t]*#\\+\\(begin\\|end\\)_src.*$" nil t)
+      ;; REMOVED [ \t]* so it only matches tags strictly at column 0
+      (while (re-search-forward "^#\\+\\(begin\\|end\\)_src.*$" nil t)
         (let* ((end (match-end 0))
                (end (if (eq (char-after end) ?\n) (1+ end) end))
                (ov (make-overlay (line-beginning-position) end)))
@@ -208,9 +209,10 @@
           (push ov org-show-and-tell--overlays)))
 
       (goto-char (point-min))
-      (while (re-search-forward "^[ \t]*#\\+begin_notes" nil t)
+      ;; REMOVED [ \t]* here too
+      (while (re-search-forward "^#\\+begin_notes" nil t)
         (let ((beg (line-beginning-position)))
-          (when (re-search-forward "^[ \t]*#\\+end_notes.*$" nil t)
+          (when (re-search-forward "^#\\+end_notes.*$" nil t)
             (let* ((end (match-end 0))
                    (end (if (eq (char-after end) ?\n) (1+ end) end))
                    (ov (make-overlay beg end)))
@@ -385,35 +387,45 @@
 
 (defun org-show-and-tell--save-and-apply-ui ()
   "Save baseline buffer state and apply presentation UI settings."
-  (setq org-show-and-tell--saved-tilde-fringe (bound-and-true-p vi-tilde-fringe-mode)
-        org-show-and-tell--saved-state
-        (list :cursor cursor-type
-              :line-numbers display-line-numbers
-              :hl-line (bound-and-true-p hl-line-mode)
-              :mode-line mode-line-format
+  
+  (setq org-show-and-tell--saved-state
+        (list :hl-line (bound-and-true-p hl-line-mode)
+              :diff-hl (bound-and-true-p diff-hl-mode)
+              :tilde-fringe (bound-and-true-p vi-tilde-fringe-mode)
+              :org-indent (bound-and-true-p org-indent-mode)
+              :evil-cursor (when (boundp 'evil-normal-state-cursor) evil-normal-state-cursor)
               :themes custom-enabled-themes))
 
-  (set (make-local-variable 'display-line-numbers) nil)
-  (set (make-local-variable 'cursor-type) nil)
-  (when (bound-and-true-p hl-line-mode) (hl-line-mode -1))
-  (when org-show-and-tell--saved-tilde-fringe (vi-tilde-fringe-mode -1))
-
+  (setq-local display-line-numbers nil)
+  (setq-local cursor-type nil)
+  (setq-local org-hide-emphasis-markers t)
+  (setq-local mode-line-format
+              '(:eval
+                (let ((margin (max 0 (or (car (window-margins)) org-show-and-tell-margin-width))))
+                  (concat (make-string margin ?\s)
+                          (propertize org-show-and-tell--slide-string 'face 'shadow)))))
+  
   (when (bound-and-true-p evil-mode)
-    (setq org-show-and-tell--saved-evil-cursor evil-normal-state-cursor)
-    (set (make-local-variable 'evil-normal-state-cursor) nil))
+    (setq-local evil-normal-state-cursor nil))
+
+  (when (fboundp 'org-restart-font-lock)
+    (org-restart-font-lock))
+
+  (when (plist-get org-show-and-tell--saved-state :hl-line)
+    (hl-line-mode -1))
+  
+  (when (plist-get org-show-and-tell--saved-state :diff-hl)
+    (diff-hl-mode -1))
+  
+  (when (plist-get org-show-and-tell--saved-state :tilde-fringe)
+    (vi-tilde-fringe-mode -1))
+  
+  (when (plist-get org-show-and-tell--saved-state :org-indent)
+    (org-indent-mode -1))
 
   (when org-show-and-tell-theme
     (mapc #'disable-theme custom-enabled-themes)
     (load-theme org-show-and-tell-theme t))
-
-  (when (bound-and-true-p org-indent-mode)
-    (org-indent-mode -1))
-
-  (set (make-local-variable 'mode-line-format)
-       '(:eval
-         (let ((margin (max 0 (or (car (window-margins)) org-show-and-tell-margin-width))))
-           (concat (make-string margin ?\s)
-                   (propertize org-show-and-tell--slide-string 'face 'shadow)))))
 
   (text-scale-set org-show-and-tell-text-scale)
   (add-hook 'window-size-change-functions #'org-show-and-tell--apply-margins nil t))
@@ -430,29 +442,44 @@
     (when-let ((win (get-buffer-window notes-buf t)))
       (delete-window win))
     (kill-buffer notes-buf))
+  
+  (kill-local-variable 'cursor-type)
+  (kill-local-variable 'display-line-numbers)
+  (kill-local-variable 'mode-line-format)
+  (kill-local-variable 'org-hide-emphasis-markers)
 
   (when org-show-and-tell--saved-state
-    (set (make-local-variable 'cursor-type) (plist-get org-show-and-tell--saved-state :cursor))
-    (set (make-local-variable 'display-line-numbers) (plist-get org-show-and-tell--saved-state :line-numbers))
-    (set (make-local-variable 'mode-line-format) (plist-get org-show-and-tell--saved-state :mode-line))
-
+    
+    ;; Restart Active Minor Modes
     (when (plist-get org-show-and-tell--saved-state :hl-line)
       (hl-line-mode 1))
-
-    (when org-show-and-tell--saved-tilde-fringe
+    
+    (when (plist-get org-show-and-tell--saved-state :diff-hl)
+      (diff-hl-mode 1))
+    
+    (when (plist-get org-show-and-tell--saved-state :tilde-fringe)
       (vi-tilde-fringe-mode 1))
+    
+    (when (plist-get org-show-and-tell--saved-state :org-indent)
+      (org-indent-mode 1))
 
+    ;; Restore Evil cursor
     (when (bound-and-true-p evil-mode)
-      (set (make-local-variable 'evil-normal-state-cursor) org-show-and-tell--saved-evil-cursor))
+      (setq-local evil-normal-state-cursor
+                  (plist-get org-show-and-tell--saved-state :evil-cursor)))
 
+    ;; Restore Themes
     (when (plist-get org-show-and-tell--saved-state :themes)
       (mapc #'disable-theme custom-enabled-themes)
       (dolist (th (plist-get org-show-and-tell--saved-state :themes))
         (load-theme th t)))
+    
     (setq org-show-and-tell--saved-state nil))
 
+  (when (fboundp 'org-restart-font-lock)
+    (org-restart-font-lock))
+
   (when (derived-mode-p 'org-mode)
-    (org-indent-mode 1)
     (if (fboundp 'org-fold-show-all)
         (org-fold-show-all)
       (org-show-all))))
@@ -489,7 +516,7 @@
 
 ;;;###autoload
 (defun org-show-and-tell-goto-agenda ()
-  "Jump to an agenda section using cached items."
+  "Jump to an agenda section."
   (interactive)
   (unless (and (boundp 'org-show-and-tell-mode) org-show-and-tell-mode)
     (user-error "Not in org-show-and-tell-mode"))

@@ -16,7 +16,7 @@ teleprompter.
 - Syncs private notes from =#+begin_notes= blocks to a dedicated presenter
   buffer ([[*Speaker Notes][see below]]).
 - Centers slides with custom margins, hides heading asterisks (=*=), block tags
-  (=#+begin_src=), line numbers, cursors, =hl-line-mode=, and fringes.
+  (=#+begin_src=), line numbers, cursors, =hl-line-mode=, VC gutter, and fringes.
 - Temporarily applies a presentation theme and restores your exact buffer state
   on exit.
 - Maps =h= / =j= / =k= / =l= and =q= to slide navigation.
