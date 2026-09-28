@@ -10,18 +10,17 @@ teleprompter.
 
 - Genereates a title cover from =#+TITLE:= / =#+AUTHOR:= headers and an agenda
   slide from your document headings.
-- Evil navigation for slides, alongside an agenda picker and goto-slide
-  commands.
+- Evil navigation for slides, alongside an interactive heading
+  selector and goto-slide commands.
 - Displays slide progress in the mode-line.
 - Displays parent-heading breadcrumbs on sub-slides for context.
 - Syncs private notes from =#+begin_notes= blocks to a dedicated presenter
   buffer ([[*Speaker Notes][see below]]).
-- Centers slides with custom margins, hides heading asterisks (=*=), block tags
-  (=#+begin_src=), line numbers, cursors, =hl-line-mode=, VC gutter, and
-  fringes.
-- Temporarily applies a presentation theme and restores your exact buffer state
-  on exit.
-- Uses buffer narrowing to isolate each slide.
+- Centers slides with custom margins, hides Org markup, and disables visual
+  minor modes (which you can customize).
+- Can temporarily apply a presentation theme while presenting.
+- Restores your original buffer context (widening, minor modes, and variables)
+  along with your global theme on exit.
 
 * Doom Emacs Setup
 
