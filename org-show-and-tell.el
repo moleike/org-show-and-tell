@@ -48,7 +48,8 @@
   :type '(choice (const :tag "Keep current theme" nil) symbol))
 
 (defcustom org-show-and-tell-hide-modes
-  '(display-line-numbers-mode
+  '(evil-local-mode
+    display-line-numbers-mode
     hl-line-mode
     vi-tilde-fringe-mode
     diff-hl-mode
@@ -389,17 +390,19 @@
   (org-show-and-tell-mode -1))
 
 ;; ---------------------------------------------------------------------
-;; Evil Keybindings
+;; Evil-like Keybindings
 ;; ---------------------------------------------------------------------
 
-(when (bound-and-true-p evil-mode)
-  (evil-define-minor-mode-key 'normal 'org-show-and-tell-mode
-    (kbd "h") #'org-show-and-tell-prev
-    (kbd "k") #'org-show-and-tell-prev
-    (kbd "l") #'org-show-and-tell-next
-    (kbd "j") #'org-show-and-tell-next
-    (kbd "q") #'org-show-and-tell-quit
-    (kbd "<escape>") #'org-show-and-tell-quit))
+(defvar org-show-and-tell-mode-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map (kbd "h") #'org-show-and-tell-prev)
+    (define-key map (kbd "k") #'org-show-and-tell-prev)
+    (define-key map (kbd "l") #'org-show-and-tell-next)
+    (define-key map (kbd "j") #'org-show-and-tell-next)
+    (define-key map (kbd "q") #'org-show-and-tell-quit)
+    (define-key map (kbd "<escape>") #'org-show-and-tell-quit)
+    map)
+  "Keymap for `org-show-and-tell-mode'.")
 
 ;; ---------------------------------------------------------------------
 ;; State Management & Minor Mode Lifecycle
@@ -409,23 +412,19 @@
   "Save baseline buffer state and apply presentation UI settings."
   (setq-local cursor-type nil)
   (setq-local org-hide-emphasis-markers t)
-
-  ;; Save and hide Evil cursor
-  (when (bound-and-true-p evil-mode)
-    (setq org-show-and-tell--saved-evil-cursor (when (boundp 'evil-normal-state-cursor) evil-normal-state-cursor))
-    (setq-local evil-normal-state-cursor nil))
+  (setq-local org-show-and-tell--was-read-only buffer-read-only)
+  
+  (read-only-mode 1)
 
   (when (fboundp 'org-restart-font-lock)
     (org-restart-font-lock))
 
-  ;; 1. Check which modes are actually ON, turn them off, and save them to our list
   (setq org-show-and-tell--disabled-modes nil)
   (dolist (mode org-show-and-tell-hide-modes)
     (when (and (boundp mode) (symbol-value mode))
       (push mode org-show-and-tell--disabled-modes)
       (funcall mode -1)))
 
-  ;; Save and apply themes
   (when org-show-and-tell-theme
     (setq org-show-and-tell--saved-themes custom-enabled-themes)
     (mapc #'disable-theme custom-enabled-themes)
@@ -454,17 +453,17 @@
   (kill-local-variable 'org-hide-emphasis-markers)
   (kill-local-variable 'mode-line-format)
 
-  ;; 2. Only turn back ON the specific modes we disabled earlier (pass 1, not -1)
+  (if org-show-and-tell--was-read-only
+      (read-only-mode 1)
+    (read-only-mode -1))
+    
+  (kill-local-variable 'org-show-and-tell--was-read-only)
+
   (dolist (mode org-show-and-tell--disabled-modes)
     (when (boundp mode)
       (funcall mode 1)))
   (setq org-show-and-tell--disabled-modes nil)
 
-  ;; 3. Restore Evil cursor using the dedicated variable, not the plist
-  (when (bound-and-true-p evil-mode)
-    (setq-local evil-normal-state-cursor org-show-and-tell--saved-evil-cursor))
-
-  ;; 4. Restore Themes using the dedicated variable, not the plist
   (when org-show-and-tell-theme
     (mapc #'disable-theme custom-enabled-themes)
     (dolist (th org-show-and-tell--saved-themes)
