@@ -407,7 +407,6 @@
 
 (defun org-show-and-tell--save-and-apply-ui ()
   "Save baseline buffer state and apply presentation UI settings."
-  (setq-local display-line-numbers nil)
   (setq-local cursor-type nil)
   (setq-local org-hide-emphasis-markers t)
 
@@ -452,9 +451,8 @@
     (kill-buffer notes-buf))
   
   (kill-local-variable 'cursor-type)
-  (kill-local-variable 'display-line-numbers)
-  (kill-local-variable 'mode-line-format)
   (kill-local-variable 'org-hide-emphasis-markers)
+  (kill-local-variable 'mode-line-format)
 
   ;; 2. Only turn back ON the specific modes we disabled earlier (pass 1, not -1)
   (dolist (mode org-show-and-tell--disabled-modes)
