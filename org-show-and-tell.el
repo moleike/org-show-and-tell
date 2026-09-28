@@ -47,6 +47,19 @@
   "Theme to apply during presentation (or nil to keep current)."
   :type '(choice (const :tag "Keep current theme" nil) symbol))
 
+(defcustom org-show-and-tell-hide-modes
+  '(display-line-numbers-mode
+    hl-line-mode
+    vi-tilde-fringe-mode
+    diff-hl-mode
+    org-indent-mode
+    flycheck-mode
+    flyspell-mode
+    display-fill-column-indicator-mode)
+  "List of minor modes to disable during a presentation."
+  :type '(repeat symbol)
+  :group 'org-show-and-tell)
+
 ;; ---------------------------------------------------------------------
 ;; Faces
 ;; ---------------------------------------------------------------------
@@ -77,13 +90,13 @@
 
 (defvar-local org-show-and-tell--slides nil)
 (defvar-local org-show-and-tell--index 0)
-(defvar-local org-show-and-tell--saved-state nil)
 (defvar-local org-show-and-tell--top-margin-ov nil)
 (defvar-local org-show-and-tell--overlays nil)
-(defvar-local org-show-and-tell--slide-string "")
-(defvar-local org-show-and-tell--saved-tilde-fringe nil)
+(defvar-local org-show-and-tell--slide-counter "")
 (defvar-local org-show-and-tell--saved-evil-cursor nil)
 (defvar-local org-show-and-tell--agenda-items nil)
+(defvar-local org-show-and-tell--disabled-modes nil)
+(defvar org-show-and-tell--saved-themes nil)
 
 ;; ---------------------------------------------------------------------
 ;; Data Accessors & Helpers
@@ -265,6 +278,13 @@
       ('agenda (org-show-and-tell--apply-agenda-overlay margin-str))
       ('slide  (org-show-and-tell--apply-content-overlay margin-str)))))
 
+(defun org-show-and-tell--apply-mode-line ()
+  "Mode line displaying the centered slide counter."
+  (setq-local mode-line-format
+              '(:eval
+                (let ((margin (max 0 (or (car (window-margins)) org-show-and-tell-margin-width))))
+                  (concat (make-string margin ?\s)
+                          (propertize org-show-and-tell--slide-counter 'face 'shadow))))))
 ;; ---------------------------------------------------------------------
 ;; Display Engine & Teleprompter
 ;; ---------------------------------------------------------------------
@@ -335,7 +355,7 @@
          (set-window-point win (point-min))))
      nil t)
 
-    (setq org-show-and-tell--slide-string
+    (setq org-show-and-tell--slide-counter
           (format "Slide %d of %d" (1+ org-show-and-tell--index) (length org-show-and-tell--slides)))
     (force-mode-line-update)
     (org-show-and-tell--apply-margins)
@@ -387,48 +407,36 @@
 
 (defun org-show-and-tell--save-and-apply-ui ()
   "Save baseline buffer state and apply presentation UI settings."
-  
-  (setq org-show-and-tell--saved-state
-        (list :hl-line (bound-and-true-p hl-line-mode)
-              :diff-hl (bound-and-true-p diff-hl-mode)
-              :tilde-fringe (bound-and-true-p vi-tilde-fringe-mode)
-              :org-indent (bound-and-true-p org-indent-mode)
-              :evil-cursor (when (boundp 'evil-normal-state-cursor) evil-normal-state-cursor)
-              :themes custom-enabled-themes))
-
   (setq-local display-line-numbers nil)
   (setq-local cursor-type nil)
   (setq-local org-hide-emphasis-markers t)
-  (setq-local mode-line-format
-              '(:eval
-                (let ((margin (max 0 (or (car (window-margins)) org-show-and-tell-margin-width))))
-                  (concat (make-string margin ?\s)
-                          (propertize org-show-and-tell--slide-string 'face 'shadow)))))
-  
+
+  ;; Save and hide Evil cursor
   (when (bound-and-true-p evil-mode)
+    (setq org-show-and-tell--saved-evil-cursor (when (boundp 'evil-normal-state-cursor) evil-normal-state-cursor))
     (setq-local evil-normal-state-cursor nil))
 
   (when (fboundp 'org-restart-font-lock)
     (org-restart-font-lock))
 
-  (when (plist-get org-show-and-tell--saved-state :hl-line)
-    (hl-line-mode -1))
-  
-  (when (plist-get org-show-and-tell--saved-state :diff-hl)
-    (diff-hl-mode -1))
-  
-  (when (plist-get org-show-and-tell--saved-state :tilde-fringe)
-    (vi-tilde-fringe-mode -1))
-  
-  (when (plist-get org-show-and-tell--saved-state :org-indent)
-    (org-indent-mode -1))
+  ;; 1. Check which modes are actually ON, turn them off, and save them to our list
+  (setq org-show-and-tell--disabled-modes nil)
+  (dolist (mode org-show-and-tell-hide-modes)
+    (when (and (boundp mode) (symbol-value mode))
+      (push mode org-show-and-tell--disabled-modes)
+      (funcall mode -1)))
 
+  ;; Save and apply themes
   (when org-show-and-tell-theme
+    (setq org-show-and-tell--saved-themes custom-enabled-themes)
     (mapc #'disable-theme custom-enabled-themes)
     (load-theme org-show-and-tell-theme t))
 
+  (org-show-and-tell--apply-mode-line)
+
   (text-scale-set org-show-and-tell-text-scale)
   (add-hook 'window-size-change-functions #'org-show-and-tell--apply-margins nil t))
+
 
 (defun org-show-and-tell--restore-ui ()
   "Clean up presentation artifacts and restore saved UI state."
@@ -448,33 +456,21 @@
   (kill-local-variable 'mode-line-format)
   (kill-local-variable 'org-hide-emphasis-markers)
 
-  (when org-show-and-tell--saved-state
-    
-    ;; Restart Active Minor Modes
-    (when (plist-get org-show-and-tell--saved-state :hl-line)
-      (hl-line-mode 1))
-    
-    (when (plist-get org-show-and-tell--saved-state :diff-hl)
-      (diff-hl-mode 1))
-    
-    (when (plist-get org-show-and-tell--saved-state :tilde-fringe)
-      (vi-tilde-fringe-mode 1))
-    
-    (when (plist-get org-show-and-tell--saved-state :org-indent)
-      (org-indent-mode 1))
+  ;; 2. Only turn back ON the specific modes we disabled earlier (pass 1, not -1)
+  (dolist (mode org-show-and-tell--disabled-modes)
+    (when (boundp mode)
+      (funcall mode 1)))
+  (setq org-show-and-tell--disabled-modes nil)
 
-    ;; Restore Evil cursor
-    (when (bound-and-true-p evil-mode)
-      (setq-local evil-normal-state-cursor
-                  (plist-get org-show-and-tell--saved-state :evil-cursor)))
+  ;; 3. Restore Evil cursor using the dedicated variable, not the plist
+  (when (bound-and-true-p evil-mode)
+    (setq-local evil-normal-state-cursor org-show-and-tell--saved-evil-cursor))
 
-    ;; Restore Themes
-    (when (plist-get org-show-and-tell--saved-state :themes)
-      (mapc #'disable-theme custom-enabled-themes)
-      (dolist (th (plist-get org-show-and-tell--saved-state :themes))
-        (load-theme th t)))
-    
-    (setq org-show-and-tell--saved-state nil))
+  ;; 4. Restore Themes using the dedicated variable, not the plist
+  (when org-show-and-tell-theme
+    (mapc #'disable-theme custom-enabled-themes)
+    (dolist (th org-show-and-tell--saved-themes)
+      (load-theme th t)))
 
   (when (fboundp 'org-restart-font-lock)
     (org-restart-font-lock))
