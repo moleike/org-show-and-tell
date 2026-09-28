@@ -58,6 +58,15 @@ Add to ~packages.el~:
         :desc "Toggle Presentation" "t P" #'org-show-and-tell-mode))
 #+end_src
 
+By default, we turn off several common minor modes (line numbers, git gutters,
+etc.) to provide a minimalistic look-and-feel. To add or remove modes, simply
+override ~org-show-and-tell-hide-modes~ in your config, e.g. in Doom Emacs (via
+~config.el~):
+
+#+begin_src elisp
+(after! org-show-and-tell
+  (add-to-list 'org-show-and-tell-hide-modes 'git-gutter-mode))
+#+end_src
 
 * Speaker Notes
 
