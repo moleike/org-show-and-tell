@@ -37,7 +37,11 @@
   "Target width of the slide content in columns for dynamic centering."
   :type 'integer)
 
-(defcustom org-show-and-tell-top-margin 2
+(defcustom org-show-and-tell-minimum-margin 8
+  "The absolute minimum left and right margin in columns."
+  :type 'integer)
+
+(defcustom org-show-and-tell-top-margin 4
   "Number of blank lines to push the top slide down."
   :type 'integer)
 
@@ -311,13 +315,12 @@ Wider windows dynamically trigger proportional text scaling."
     (let* ((font-px     (window-font-width win))
            (char-px     (frame-char-width (window-frame win)))
            (win-px      (window-pixel-width win))
-           ;; +4 safety padding ensures visual-line-mode NEVER wraps early
-           (content-px  (* (+ 4 content-width) font-px))
-           (margin-cols (if is-clone 
-                            4
-                          (max 0 (round (/ (float (- win-px content-px)) 2.0 (float char-px))))))
+           (content-px  (* (+ 4 content-width) font-px)) ; +4 padding so visual-line-mode NEVER wraps early
+           (calculated  (floor (/ (float (- win-px content-px)) 2.0 (float char-px))))
+           (min-margin  (if is-clone 4 org-show-and-tell-minimum-margin))
+           (margin-cols (max min-margin calculated))
            (cur-margins (window-margins win)))
-
+      
       (unless (equal cur-margins (cons margin-cols margin-cols))
         (set-window-margins win margin-cols margin-cols)))))
 
